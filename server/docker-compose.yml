@@ -15,7 +15,7 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"  # accès aux labels Docker
 
   std-server:
-    image: sipixer/std-server:latest
+    image: ghcr.io/sipixer/server-chat/chat-server:main-f2a5044
     build:
       context: .
       dockerfile: Dockerfile
