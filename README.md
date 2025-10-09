@@ -6,6 +6,26 @@ améliorations en termes de performances, de scalabilité et de résilience.
 
 &nbsp;
 
+## Monitoring & Observabilité
+
+Une stack de supervision complète est désormais intégrée au projet.
+
+- **Metrics applicatives** : l'API Express expose des métriques Prometheus sur `GET /metrics` (compteurs HTTP, latence, connexions Socket.IO, statut Redis, débit des messages). Une sonde `GET /healthz` permet de vérifier rapidement l'état de l'instance.
+- **Prometheus** : collecteur configuré via `server/monitoring/prometheus.yml`, scrapant l'application, Traefik, Redis Exporter et cAdvisor.
+- **Grafana** : accessible sur <http://localhost:3001> (admin / admin par défaut). Les datasources et tableaux de bord sont provisionnés automatiquement depuis `server/monitoring/grafana/*` — notamment le dashboard `STD Chat - Observabilité`.
+- **Redis Exporter & cAdvisor** : exposent des métriques détaillées sur Redis et les containers Docker.
+
+Pour lancer l'ensemble :
+
+```bash
+cd server
+docker compose up -d
+```
+
+Les métriques Prometheus sont disponibles sur <http://localhost:9090>, Grafana sur <http://localhost:3001> et le tableau de bord Traefik sur <http://localhost:8080>. Pense à ajuster les mots de passe Grafana avant un déploiement en production.
+
+&nbsp;
+
 - [Paramétrage initial](#paramétrage-initial)
   - [Création du repo GitHub STD](#création-du-repo-github-std)
   - [Création d'un compte Terraform Cloud par membre](#création-dun-compte-terraform-cloud-par-membre)

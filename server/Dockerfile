@@ -1,36 +1,42 @@
-# use the official Bun image
-# see all versions at https://hub.docker.com/r/oven/bun/tags
-FROM oven/bun:1 AS base
+# Étape 1 : Base commune (légère et sécurisée)
+FROM node:20-slim AS base
 WORKDIR /usr/src/app
 
-# install dependencies into temp directory
-# this will cache them and speed up future builds
-FROM base AS install
-RUN mkdir -p /temp/dev
-COPY package.json bun.lockb /temp/dev/
-RUN cd /temp/dev && bun install --frozen-lockfile
+# Installer pnpm de manière globale
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# install with --production (exclude devDependencies)
-RUN mkdir -p /temp/prod
-COPY package.json bun.lockb /temp/prod/
-RUN cd /temp/prod && bun install --frozen-lockfile --production
+# Étape 2 : Installation des dépendances (avec cache)
+FROM base AS deps
 
-# copy node_modules from temp directory
-# then copy all (non-ignored) project files into the image
-FROM base AS prerelease
-COPY --from=install /temp/dev/node_modules node_modules
+# Copier uniquement les fichiers nécessaires à la résolution des dépendances
+COPY package.json pnpm-lock.yaml ./
+
+# Installation des dépendances (production + dev pour le build)
+RUN pnpm install --frozen-lockfile
+
+# Étape 3 : Build de l’application
+FROM base AS build
+COPY --from=deps /usr/src/app/node_modules ./node_modules
 COPY . .
-RUN bun run build
+RUN pnpm run build
 
-# [optional] tests & build
+# Étape 4 : Image finale (production, ultra légère)
+FROM node:20-slim AS production
+WORKDIR /usr/src/app
+
 ENV NODE_ENV=production
 
-# copy production dependencies and source code into final image
-FROM base AS release
-COPY --from=install /temp/prod/node_modules node_modules
-COPY --from=prerelease /usr/src/app/ .
+# Réactiver pnpm uniquement si besoin (pour les scripts start)
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# run the app
-USER bun
-EXPOSE 3000/tcp
-ENTRYPOINT [ "bun", "run", "start" ]
+# Copier uniquement ce qui est nécessaire
+COPY package.json pnpm-lock.yaml ./
+COPY --from=deps /usr/src/app/node_modules ./node_modules
+COPY --from=build /usr/src/app/dist ./dist
+COPY --from=build /usr/src/app/src ./src
+
+# Sécurité et performances
+USER node
+EXPOSE 3000
+
+CMD ["node", "--import", "tsx", "src/server/main.ts"]

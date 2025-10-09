@@ -5,35 +5,50 @@ import { createRedisClient } from "./config/redis.js";
 import { configureSocket } from "./config/socket.js";
 import { handleSocketConnection } from "./handlers/socketHandlers.js";
 import { apiRoutes } from "./routes/api.js";
+import {
+  metricsHandler,
+  metricsMiddleware,
+  setRedisConnectionState,
+} from "./monitoring/metrics.js";
 import { env } from "./utils/envalid.js";
 
 const initializeServer = async () => {
-	const app = express();
-	const server = createServer(app);
+  const app = express();
+  const server = createServer(app);
 
-	console.log("🚀 Starting server...");
-	console.log(`🔌 Elasticache endpoint: redis://${env.ELASTICACHE_ENDPOINT}`);
+  console.log("🚀 Starting server...");
+  console.log(`🔌 Elasticache endpoint: redis://${env.ELASTICACHE_ENDPOINT}`);
 
-	// Redis setup
-	const redisClient = createRedisClient();
-	await redisClient.connect();
-	console.log("Connected to Redis!");
+  // Redis setup
+  const redisClient = createRedisClient();
+  redisClient.on("ready", () => setRedisConnectionState(true));
+  redisClient.on("end", () => setRedisConnectionState(false));
+  redisClient.on("error", () => setRedisConnectionState(false));
+  redisClient.on("reconnecting", () => setRedisConnectionState(false));
+  await redisClient.connect();
+  setRedisConnectionState(true);
+  console.log("Connected to Redis!");
 
-	// Socket.io setup
-	const io = await configureSocket(server);
-	io.on("connection", (socket) =>
-		handleSocketConnection(socket, io, redisClient),
-	);
+  // Socket.io setup
+  const io = await configureSocket(server);
+  io.on("connection", (socket) =>
+    handleSocketConnection(socket, io, redisClient)
+  );
 
-	// Routes
-	app.use("/api", apiRoutes);
+  // Routes
+  app.use(metricsMiddleware);
+  app.get("/metrics", metricsHandler);
+  app.get("/healthz", (_req, res) => {
+    res.status(200).json({ status: "ok", timestamp: Date.now() });
+  });
+  app.use("/api", apiRoutes);
 
-	// Start server
-	server.listen(3000, () => {
-		console.log("Server is listening!");
-	});
+  // Start server
+  server.listen(3000, () => {
+    console.log("Server is listening!");
+  });
 
-	ViteExpress.bind(app, server);
+  ViteExpress.bind(app, server);
 };
 
 initializeServer().catch(console.error);
