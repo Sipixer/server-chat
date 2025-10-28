@@ -35,9 +35,6 @@ const initializeServer = async () => {
     handleSocketConnection(socket, io, redisClient)
   );
 
-  // Routes
-  app.use(metricsMiddleware);
-  app.get("/metrics", metricsHandler);
   app.get("/health", (req, res) => {
     res.status(200).send("OK");
   });
