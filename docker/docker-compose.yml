@@ -53,12 +53,29 @@ services:
       - "traefik.http.services.chat-server.loadbalancer.server.port=3000"
       - "traefik.http.services.chat-server.loadbalancer.sticky.cookie=true"
       - "traefik.http.services.chat-server.loadbalancer.sticky.cookie.name=chat-session"
+      - "com.centurylinklabs.watchtower.enable=true"
 
   redis:
     image: redis:8.2.2-alpine
     container_name: redis
     restart: unless-stopped
     networks:
+      - backend
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command:
+      - --rolling-restart
+      - --cleanup
+      - --label-enable
+      - --revive-stopped
+      # pas de --interval -> par défaut : toutes les 5 min (300s)
+    networks:
+      - proxy
       - backend
 
 networks:
