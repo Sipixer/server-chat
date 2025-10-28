@@ -38,7 +38,7 @@ const initializeServer = async () => {
   // Routes
   app.use(metricsMiddleware);
   app.get("/metrics", metricsHandler);
-  app.get("/healthz", (_req, res) => {
+  app.get("/health", (_req, res) => {
     res.status(200).json({ status: "ok", timestamp: Date.now() });
   });
   app.use("/api", apiRoutes);
