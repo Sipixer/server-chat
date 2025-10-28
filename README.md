@@ -1,614 +1,181 @@
-# SDT - Projet Chat Server
+# 💬 Server Chat# SDT - Projet Chat Server
 
-Ce document a pour objectif de détailler les étapes de conception, d'implémentation et d'évolution d'un
-projet de serveur de chat. L’architecture s’améliore au fil des itérations, chaque étape apportant des
-améliorations en termes de performances, de scalabilité et de résilience.
 
-&nbsp;
 
-## Monitoring & Observabilité
+Une application de chat en temps réel construite avec **Socket.IO**, **Express**, **React** et **Redis**, entièrement dockerisée et prête pour le déploiement en production.
 
-Une stack de supervision complète est désormais intégrée au projet.
+## 🌟 Caractéristiques
 
-- **Metrics applicatives** : l'API Express expose des métriques Prometheus sur `GET /metrics` (compteurs HTTP, latence, connexions Socket.IO, statut Redis, débit des messages). Une sonde `GET /healthz` permet de vérifier rapidement l'état de l'instance.
-- **Prometheus** : collecteur configuré via `server/monitoring/prometheus.yml`, scrapant l'application, Traefik, Redis Exporter et cAdvisor.
-- **Grafana** : accessible sur <http://localhost:3001> (admin / admin par défaut). Les datasources et tableaux de bord sont provisionnés automatiquement depuis `server/monitoring/grafana/*` — notamment le dashboard `STD Chat - Observabilité`.
-- **Redis Exporter & cAdvisor** : exposent des métriques détaillées sur Redis et les containers Docker.
+- 🚀 **Chat en temps réel** avec Socket.IO
+- 🎨 **Interface utilisateur moderne** avec React et Tailwind CSS
+- 📊 **Monitoring et métriques** Prometheus intégrés
+- 🔄 **Haute disponibilité** avec Redis pour la persistance des sessions
+- 🔐 **HTTPS automatique** avec Let's Encrypt via Traefik
+- 🌐 **DNS dynamique** support DuckDNS
+- 📱 **QR Code** pour partage facile de session
+- ⚙️ **Load balancing** automatique avec Traefik
+- 🐳 **Multi-conteneurs** orchestration avec Docker Compose
 
-Pour lancer l'ensemble :
+## 📋 Prérequis
+
+### Installation locale
+
+- **Node.js** 20+
+- **pnpm** (recommandé)
+- **Redis** 8.2.2+
+- **Docker** & **Docker Compose** (pour le déploiement)
+
+### Déploiement en production
+
+- **Serveur Linux** (Ubuntu 22.04+ recommandé)
+- **Docker** & **Docker Compose**
+- **Domaine personnalisé** avec accès DNS
+- **Token DuckDNS** (pour DNS dynamique)
+- **Email valide** (pour certificats Let's Encrypt)
+
+## 🚀 Déploiement Rapide
+
+### 1️⃣ **Déploiement Local (Développement)**
 
 ```bash
+# Installer les dépendances
 cd server
-docker compose up -d
+pnpm install
+
+# Démarrer en mode développement
+pnpm run dev
+
+# L'app sera disponible sur http://localhost:5173
 ```
 
-Les métriques Prometheus sont disponibles sur <http://localhost:9090>, Grafana sur <http://localhost:3001> et le tableau de bord Traefik sur <http://localhost:8080>. Pense à ajuster les mots de passe Grafana avant un déploiement en production.
-
-&nbsp;
-
-- [Paramétrage initial](#paramétrage-initial)
-  - [Création du repo GitHub STD](#création-du-repo-github-std)
-  - [Création d'un compte Terraform Cloud par membre](#création-dun-compte-terraform-cloud-par-membre)
-  - [Mise en place des accès AWS dans Terraform Cloud](#mise-en-place-des-accès-aws-dans-terraform-cloud)
-  - [Push du code sur GitHub repo STD](#push-du-code-sur-github-repo-std)
-  - [Connexion entre GitHub Actions et Terraform Cloud](#connexion-entre-github-actions-et-terraform-cloud)
-
-- [Itération 1 - Mise en place de base avec GitHub Actions](#itération-1---mise-en-place-de-base-avec-github-actions)
-  - [Création d’un premier fichier test.tf pour déployer un SG](#création-dun-premier-fichier-testtf-pour-déployer-un-sg)
-  - [Création d’un deuxième fichier test.tf pour déployer un EC2](#création-dun-deuxième-fichier-testtf-pour-déployer-un-ec2)
-  - [Création d’un troisième fichier test.tf pour déployer un EC2 + SG](#création-dun-troisième-fichier-testtf-pour-déployer-un-ec2--sg)
-  - [Tentative d'utilisation d'ECR](#tentative-dutilisation-decr)
-  - [Mise en place de GHCR (GitHub Container Registry)](#mise-en-place-de-ghcr-github-container-registry)
-
-- [Itération 2 - Ajout de scalabilité avec Auto-scaling, Load Balancer et Elastic Cache](#itération-2---ajout-de-scalabilité-avec-auto-scaling-load-balancer-et-elastic-cache)
-  - [Elastic Cache](#elastic-cache)
-  - [Launch Template](#launch-template)
-  - [Auto Scaling Group](#auto-scaling-group)
-  - [Load Balancer](#load-balancer)
-  - [Stickiness](#stickiness)
-
-- [Itération 3 - Utilisation ECS - Fargate](#itération-3---utilisation-ecs---fargate)
-  - [Description de l'exécution des containers](#description-de-lexécution-des-containers)
-  - [Exécution de la task définition](#exécution-de-la-task-définition)
-  - [Rôle permettant d'accéder aux données du container et autoriser les logs](#rôle-permettant-daccéder-aux-données-du-container-et-autoriser-les-logs)
----
-&nbsp;
-
-## Paramétrage initial
-
-&nbsp;
-
-
-### Création du repo github STD
-- ajout des membres du groupe
-
-&nbsp;
-
-
-### Création d'un compte Terraform Cloud par membre
-- Création commpte Hashicorp https://portal.cloud.hashicorp.com/sign-up
-- Création d'une organisation
-- Invitation des membres du groupe dans l'organisation
-
-&nbsp;
-
-
-### Mise en place des accès AWS dans terraform cloud
-- Création d'une clé API AWS
-
-
-> IAM > Security credentials > Create access key
-
-&nbsp;
-
-### Push du code sur github repo STD
+### 2️⃣ **Déploiement Docker Local**
 
 ```bash
-git add .
-git commit -m "change_message"
-git push
-```
-&nbsp;
+# Depuis la racine du projet
+cd server
 
-### Connexion entre Github Actions et Terraform Cloud
-- Création TF_API_TOKEN sur Terraform Cloud pour permettre à Github Actions de faire un "terraform login"
+# Construire l'image Docker
+docker build -t server-chat:latest .
 
-&nbsp;
+# Lancer les conteneurs
+docker-compose up -d
 
-> STD > Settings > API Tokens > Teams Tokens
-
-&nbsp;
-
-## Itération 1 - Mise en place de base avec GitHub Actions
-
-### Objectif :
-Créer une CI/CD permettant de déployer notre infrastructure en s'appuyant sur Terraform Cloud (qui stockera les states)
-
-&nbsp;
-
-![alt text](images/image1.png)
-
-&nbsp;
-
-- Copier le token TF_API_TOKEN sur Github Actions
-
-> STD > Settings > Actions secrets and variables > New Repository Token
-
-&nbsp;
-
-### Création d’un premier fichier test.tf pour déployer un **SG**
-
-<details>
-  <summary>Cliquer pour dérouler le code</summary>
-
-```hcl
-terraform {
-  cloud {
-
-    organization = "STD"
-
-    workspaces {
-      name = "STD"
-    }
-  }
-
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 4.0"
-    }
-  }
-}
-
-provider "aws" {
-  region = "eu-west-1"
-}
-
-resource "aws_security_group" "example" {
-  name        = "std-security-group"
-  description = "STD security group"
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "std-security-group"
-  }
-}
-```
-</details>
-
-&nbsp;
-
-### Création d’un deuxième fichier test.tf pour déployer un **EC2**
-
-<details>
-  <summary>Cliquer pour dérouler le code</summary>
-
-```hcl
-terraform {
-  cloud {
-    organization = "STD"
-
-    workspaces {
-      name = "STD"
-    }
-  }
-
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 4.0"
-    }
-  }
-}
-
-provider "aws" {
-  region = "eu-west-1"
-}
-
-data "aws_ami" "ecs_optimized_ami" {
-  most_recent = true
-  owners      = ["amazon"]
-
-  filter {
-    name   = "name"
-    values = ["amzn2-ami-ecs-hvm-2.0.202*-x86_64-ebs"]
-  }
-}
-
-resource "aws_instance" "ecs_instance" {
-  ami           = data.aws_ami.ecs_optimized_ami.id
-  instance_type = "t2.micro"
-
-  tags = {
-    Name = "STD-EC2"
-  }
-}
-```
-</details>
-
-&nbsp;
-
-
-### Création d’un troisème fichier test.tf pour déployer un **EC2 + SG**
-
-<details>
-  <summary>Cliquer pour dérouler le code</summary>
-
-```hcl
- 
-
- terraform {
-  cloud {
-    organization = "STD"
-
-    workspaces {
-      name = "STD"
-    }
-  }
-
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 4.0"
-    }
-  }
-}
-
-provider "aws" {
-  region = "eu-west-1"
-}
-
-data "aws_ami" "ecs_optimized_ami" {
-  most_recent = true
-  owners      = ["amazon"]
-
-  filter {
-    name   = "name"
-    values = ["amzn2-ami-ecs-hvm-2.0.202*-x86_64-ebs"]
-  }
-}
-
-resource "aws_security_group" "allow_http_ssh" {
-  name        = "std-allow-http-ssh"
-  description = "Security group to allow HTTP and SSH access"
-
-  ingress {
-    description = "Allow HTTP traffic"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "Allow SSH traffic"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    description = "Allow all outbound traffic"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-resource "aws_instance" "ecs_instance" {
-  vpc_security_group_ids = [aws_security_group.allow_http_ssh.id]
-
-  ami           = data.aws_ami.ecs_optimized_ami.id
-  instance_type = "t2.micro"
-  key_name      = "SRE-KeyPair"
-
-  tags = {
-    Name = "STD-EC2"
-  }
-}
-
-
-```
-</details>
-
-&nbsp;
-
-
-### Tentative d'utilisation d'ECR
-
-L'objectif est de stocker l'image docker du tchat sur le registery AWS
-
-<details>
-  <summary>Cliquer pour dérouler le code - ecr.tf</summary>
-
-```hcl
-resource "aws_ecr_repository" "std_chat" {
-  name                 = "std-chat"
-  image_tag_mutability = "MUTABLE"
-}
-```
-</details>
-
-<details>
-  <summary>Cliquer pour dérouler le code - output.tf</summary>
-
-```hcl
-output "ecr_repository_url" {
-  value = aws_ecr_repository.std_chat.repository_url
-}
-```
-</details>
-
-&nbsp;
-
-**/!\ Abandon au profit de GHRC (solution native de Github)**
-
-&nbsp;
-
-### Mise en place de GHCR (Github Container Registry)
-
-```yml
-  - name: Tag Docker Image
-    run: |
-      REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-      docker tag chat-server:latest ghcr.io/${REPO_NAME}/chat-server:latest
-
-  - name: Push Docker Image
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    run: |
-      REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-      docker push ghcr.io/${REPO_NAME}/chat-server:latest
-```
-&nbsp;
-
-## Itération 2 - Ajout de scalabilité avec Auto-scaling, Load Balancer et Elastic Cache
-
-&nbsp;
-
-### Elastic cache
-Ajout d'un replication_group
-```HCL
-resource "aws_elasticache_replication_group" "elasticache" {
-  replication_group_id = "std-elasticache"
-  description          = "STD Elasticache"
-  node_type            = "cache.t2.micro"
-  num_cache_clusters   = 1
-  engine               = "redis"
-```
-&nbsp;
-
-
-### Launch Template 
-```HCL
-resource "aws_launch_template" "std_launch_template" {
-  name_prefix   = "std-launch-template"
-  image_id      = data.aws_ami.ecs_optimized_ami.id
-  instance_type = var.instance_type
-  placement {
-    availability_zone = "${var.region}a"
-  }
-
-  key_name = "SRE-KeyPair"
-
-  user_data = base64encode(<<-EOF
-              #!/bin/bash
-              docker pull ghcr.io/thfx31/std/chat-server:latest
-              docker run -d -p 80:3000 \
-                -e ELASTICACHE_ENDPOINT=${var.elasticache_endpoint} \
-                ghcr.io/thfx31/std/chat-server:latest
-              EOF
-  )
-
-  network_interfaces {
-    security_groups = [aws_security_group.std_ec2_sg.id]
-  }
-}
+# Vérifier les logs
+docker-compose logs -f
 ```
 
-&nbsp;
+### 3️⃣ **Déploiement en Production**
 
-### Auto Scaling Group
-```HCL
-resource "aws_autoscaling_group" "std_asg" {
-  desired_capacity = 2
-  max_size         = 4
-  min_size         = 1
+#### Étape A : Préparer le serveur
 
-  launch_template {
-    id      = var.launch_template_id
-    version = "$Latest"
-  }
+```bash
+# Cloner le repository
+git clone https://github.com/Sipixer/server-chat.git
+cd server-chat
 
-  target_group_arns = var.target_group_arns
-}
+# Créer le dossier de configuration
+mkdir -p docker/letsencrypt
+
+# Définir les permissions
+chmod 700 docker/letsencrypt
 ```
-&nbsp;
 
-### Load Balancer
-```HCL
-resource "aws_lb" "std_lb" {
-  name                       = "std-lb"
-  internal                   = false
-  load_balancer_type         = "application"
-  security_groups            = [aws_security_group.std_lb_sg.id]
-  subnets                    = var.public_subnets
-  enable_deletion_protection = false
-  tags = {
-    Name = "std-lb"
-  }
-}
+#### Étape B : Configurer les variables d'environnement
+
+Créer un fichier `.env` dans le dossier `docker/` :
+
+```env
+# 🔐 Certificats SSL - Let's Encrypt
+ACME_EMAIL=votre-email@example.com
+
+# 🌐 Configuration DNS DuckDNS
+DUCKDNS_TOKEN=votre-token-duckdns
+DOMAIN=votre-domaine.duckdns.org
+
+# 🔴 Configuration Redis
+REDIS_HOST=redis
+REDIS_PORT=6379
+
+# 📊 Replicas du serveur de chat
+STD_SERVER_REPLICAS=2
 ```
-&nbsp;
 
-### Stickiness
-> Nous utilisons le websocket entre l'instance et notre client.
-L'activation de la stickiness (persistance de session) permet de maintenir une session stable entre le client et le serveur
+**Obtenir votre token DuckDNS :**
+1. Aller sur [duckdns.org](https://www.duckdns.org)
+2. Se connecter avec un compte
+3. Créer un domaine (ex: `mon-app.duckdns.org`)
+4. Copier le token d'authentification
 
-```hcl
-  # Configuration des sessions persistantes pour WebSocket
-  stickiness {
-    enabled         = true
-    type            = "lb_cookie"
-    cookie_duration = 86400
-  }
+#### Étape C : Lancer le déploiement
+
+```bash
+cd docker
+
+# Vérifier les variables d'environnement
+cat .env
+
+# Démarrer les services
+docker-compose up -d
+
+# Vérifier que tout fonctionne
+docker-compose ps
+docker-compose logs -f chat-server
 ```
-&nbsp;
 
+#### Étape D : Vérifier la configuration
 
-## Itération 3 - Utilisation ECS - Fargate
+```bash
+# Vérifier l'accès HTTP (redirection HTTPS)
+curl -I http://votre-domaine.duckdns.org
 
-> L'objectif est de simplifier la gestion en déployant directement sur un service managé ECS (et abandonner EC2)
+# Vérifier HTTPS
+curl -I https://votre-domaine.duckdns.org
 
-> Nous utiliserons Fargate afin de ne pas avoir à gérer la couche infra.
-
-### Description de l'exécution des containers
-<details>
-  <summary>Task definition</summary>
-
-```hcl
-resource "aws_ecs_task_definition" "std-ecs-task" {
-  family                   = "std-ecs-task"
-  requires_compatibilities = ["FARGATE"]
-  network_mode             = "awsvpc"
-  cpu                      = 1024
-  memory                   = 2048
-
-  task_role_arn      = aws_iam_role.ecs_task_role_chat.arn
-  execution_role_arn = aws_iam_role.ecs_execution_role_chat.arn
-
-  container_definitions = jsonencode([
-    {
-      name   = "std-ecs-chat"
-      image  = "ghcr.io/thfx31/std/chat-server:latest"
-      cpu    = 1024
-      memory = 2048
-      portMappings = [
-        {
-          containerPort = 3000
-          hostPort      = 3000
-        }
-      ]
-
-      environment = [
-        {
-          name  = "ELASTICACHE_ENDPOINT"
-          value = var.elasticache_endpoint
-        }
-      ]
-
-      logConfiguration = {
-        "logDriver" = "awslogs",
-        "options" = {
-          "awslogs-group"         = aws_cloudwatch_log_group.ecs_cluster.name,
-          "awslogs-region"        = var.region,
-          "awslogs-stream-prefix" = "std-ecs-task"
-        }
-      },
-
-      linuxParameters = {
-        "initProcessEnabled" = true
-      }
-    }
-  ])
-
-  runtime_platform {
-    operating_system_family = "LINUX"
-    cpu_architecture        = "X86_64"
-  }
-}
+# Vérifier le socket
+curl https://votre-domaine.duckdns.org/socket.io/
 ```
-</details>
 
+## 🔧 Configuration Détaillée
 
-&nbsp;
+### Architecture du Déploiement
 
-### Exécution de la task définition
-<details>
-  <summary>ECS Service</summary>
-
-```hcl
-resource "aws_ecs_service" "std-ecs-service" {
-  name            = "std-ecs-service"
-  cluster         = aws_ecs_cluster.std-ecs-cluster.id
-  task_definition = aws_ecs_task_definition.std-ecs-task.arn
-  desired_count   = 2
-
-  deployment_minimum_healthy_percent = 50
-  deployment_maximum_percent         = 200
-
-
-  enable_execute_command = true
-  launch_type            = "FARGATE"
-
-  load_balancer {
-    target_group_arn = var.target_group_arn
-    container_name   = "std-ecs-chat"
-    container_port   = 3000
-  }
-
-  network_configuration {
-    subnets          = var.public_subnets
-    security_groups  = [aws_security_group.chat.id]
-    assign_public_ip = true
-  }
-}
 ```
-</details>
-
-&nbsp;
-
-### Rôle permettant d'accéder aux données du containers et autoriser les logs
-<details>
-  <summary>Role chat</summary>
-
-```hcl
-resource "aws_iam_role" "ecs_task_role_chat" {
-  name = "std-ecs-task-role-chat"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Sid    = ""
-        Principal = {
-          Service = "ecs-tasks.amazonaws.com"
-        }
-      }
-    ]
-  })
-
-  inline_policy {
-    name = "requirements-for-ecs-exec"
-
-    policy = jsonencode({
-      Version : "2012-10-17",
-      Statement : [
-        {
-          Sid : "AllowECSExecActions",
-          Effect : "Allow",
-          Action : [
-            "ssmmessages:CreateControlChannel",
-            "ssmmessages:CreateDataChannel",
-            "ssmmessages:OpenControlChannel",
-            "ssmmessages:OpenDataChannel",
-            "ecs:ExecuteCommand",
-            "ssm:SendCommand",
-            "ssm:DescribeInstanceInformation",
-            "ssm:ListCommandInvocations",
-            "ssm:ListCommands"
-          ],
-          Resource : "*"
-        },
-        {
-          Sid : "AllowCloudWatchLogs",
-          Effect : "Allow",
-          Action : [
-            "logs:CreateLogStream",
-            "logs:PutLogEvents",
-            "logs:DescribeLogStreams"
-          ],
-          Resource : "*"
-        }
-      ]
-    })
-  }
-}
+┌─────────────────────────────────────────────────────────┐
+│                   Internet                              │
+└────────────────────┬────────────────────────────────────┘
+                     │
+         ┌───────────┴───────────┐
+         │      Traefik          │
+         │  (Reverse Proxy)      │
+         │  - SSL/TLS            │
+         │  - Load Balancer      │
+         └───────────┬───────────┘
+                     │
+        ┌────────────┼────────────┐
+        │            │            │
+   ┌────┴───┐   ┌────┴───┐   ┌────┴───┐
+   │ Chat   │   │ Chat   │   │ Chat   │
+   │Server  │   │Server  │   │Server  │
+   │Réplica1│   │Réplica2│   │Réplica │
+   └────┬───┘   └────┬───┘   └────┬───┘
+        │            │            │
+        └────────────┼────────────┘
+                     │
+              ┌──────┴──────┐
+              │    Redis    │
+              │  (Sessions) │
+              └─────────────┘
 ```
-</details>
+
+### Variables d'Environnement Disponibles
+
+| Variable | Description | Défaut | Exemple |
+|----------|-------------|--------|---------|
+| `ELASTICACHE_ENDPOINT` | Endpoint Redis | `redis:6379` | `redis.us-east-1.cache.amazonaws.com:6379` |
+| `NODE_ENV` | Environnement d'exécution | `development` | `production` |
+| `DUCKDNS_TOKEN` | Token d'authentification DuckDNS | - | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
+| `ACME_EMAIL` | Email pour Let's Encrypt | - | `admin@example.com` |
+| `DOMAIN` | Domaine d'accès | - | `mon-app.duckdns.org` |
+| `REDIS_HOST` | Hôte Redis | `localhost` | `redis` |
+| `REDIS_PORT` | Port Redis | `6379` | `6379` |
+| `STD_SERVER_REPLICAS` | Nombre de réplicas | `1` | `3` |
