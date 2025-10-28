@@ -5,11 +5,6 @@ import { createRedisClient } from "./config/redis.js";
 import { configureSocket } from "./config/socket.js";
 import { handleSocketConnection } from "./handlers/socketHandlers.js";
 import { apiRoutes } from "./routes/api.js";
-import {
-  metricsHandler,
-  metricsMiddleware,
-  setRedisConnectionState,
-} from "./monitoring/metrics.js";
 import { env } from "./utils/envalid.js";
 
 const initializeServer = async () => {
@@ -21,12 +16,7 @@ const initializeServer = async () => {
 
   // Redis setup
   const redisClient = createRedisClient();
-  redisClient.on("ready", () => setRedisConnectionState(true));
-  redisClient.on("end", () => setRedisConnectionState(false));
-  redisClient.on("error", () => setRedisConnectionState(false));
-  redisClient.on("reconnecting", () => setRedisConnectionState(false));
   await redisClient.connect();
-  setRedisConnectionState(true);
   console.log("Connected to Redis!");
 
   // Socket.io setup
@@ -35,16 +25,13 @@ const initializeServer = async () => {
     handleSocketConnection(socket, io, redisClient)
   );
 
-  // Routes
-  app.use(metricsMiddleware);
-  app.get("/metrics", metricsHandler);
   app.get("/healthz", (_req, res) => {
     res.status(200).json({ status: "ok", timestamp: Date.now() });
   });
   app.use("/api", apiRoutes);
 
   // Start server
-  server.listen(3000, () => {
+  server.listen(3000, "0.0.0.0", () => {
     console.log("Server is listening!");
   });
 
