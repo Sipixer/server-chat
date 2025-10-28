@@ -5,11 +5,6 @@ import { createRedisClient } from "./config/redis.js";
 import { configureSocket } from "./config/socket.js";
 import { handleSocketConnection } from "./handlers/socketHandlers.js";
 import { apiRoutes } from "./routes/api.js";
-import {
-  metricsHandler,
-  metricsMiddleware,
-  setRedisConnectionState,
-} from "./monitoring/metrics.js";
 import { env } from "./utils/envalid.js";
 
 const initializeServer = async () => {
@@ -21,12 +16,7 @@ const initializeServer = async () => {
 
   // Redis setup
   const redisClient = createRedisClient();
-  redisClient.on("ready", () => setRedisConnectionState(true));
-  redisClient.on("end", () => setRedisConnectionState(false));
-  redisClient.on("error", () => setRedisConnectionState(false));
-  redisClient.on("reconnecting", () => setRedisConnectionState(false));
   await redisClient.connect();
-  setRedisConnectionState(true);
   console.log("Connected to Redis!");
 
   // Socket.io setup
