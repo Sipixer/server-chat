@@ -41,8 +41,8 @@ const initializeServer = async () => {
   app.use("/api", apiRoutes);
 
   // Start server
-  server.listen(3000, () => {
-    console.log("Server is listening!");
+  app.listen(3000, "0.0.0.0", () => {
+    console.log("Server running on port 3000");
   });
 
   ViteExpress.bind(app, server);
