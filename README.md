@@ -4,18 +4,6 @@
 
 Une application de chat en temps réel construite avec **Socket.IO**, **Express**, **React** et **Redis**, entièrement dockerisée et prête pour le déploiement en production.
 
-## 🌟 Caractéristiques
-
-- 🚀 **Chat en temps réel** avec Socket.IO
-- 🎨 **Interface utilisateur moderne** avec React et Tailwind CSS
-- 📊 **Monitoring et métriques** Prometheus intégrés
-- 🔄 **Haute disponibilité** avec Redis pour la persistance des sessions
-- 🔐 **HTTPS automatique** avec Let's Encrypt via Traefik
-- 🌐 **DNS dynamique** support DuckDNS
-- 📱 **QR Code** pour partage facile de session
-- ⚙️ **Load balancing** automatique avec Traefik
-- 🐳 **Multi-conteneurs** orchestration avec Docker Compose
-
 ## 📋 Prérequis
 
 ### Installation locale
