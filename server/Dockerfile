@@ -34,6 +34,8 @@ COPY package.json pnpm-lock.yaml ./
 COPY --from=deps /usr/src/app/node_modules ./node_modules
 COPY --from=build /usr/src/app/dist ./dist
 COPY --from=build /usr/src/app/src ./src
+RUN apk add --no-cache curl
+
 
 # Sécurité et performances
 USER node
