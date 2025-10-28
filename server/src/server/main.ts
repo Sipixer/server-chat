@@ -20,20 +20,20 @@ const initializeServer = async () => {
   console.log(`🔌 Elasticache endpoint: redis://${env.ELASTICACHE_ENDPOINT}`);
 
   // Redis setup
-  // const redisClient = createRedisClient();
-  // redisClient.on("ready", () => setRedisConnectionState(true));
-  // redisClient.on("end", () => setRedisConnectionState(false));
-  // redisClient.on("error", () => setRedisConnectionState(false));
-  // redisClient.on("reconnecting", () => setRedisConnectionState(false));
-  // await redisClient.connect();
-  // setRedisConnectionState(true);
-  // console.log("Connected to Redis!");
+  const redisClient = createRedisClient();
+  redisClient.on("ready", () => setRedisConnectionState(true));
+  redisClient.on("end", () => setRedisConnectionState(false));
+  redisClient.on("error", () => setRedisConnectionState(false));
+  redisClient.on("reconnecting", () => setRedisConnectionState(false));
+  await redisClient.connect();
+  setRedisConnectionState(true);
+  console.log("Connected to Redis!");
 
-  // // Socket.io setup
-  // const io = await configureSocket(server);
-  // io.on("connection", (socket) =>
-  //   handleSocketConnection(socket, io, redisClient)
-  // );
+  // Socket.io setup
+  const io = await configureSocket(server);
+  io.on("connection", (socket) =>
+    handleSocketConnection(socket, io, redisClient)
+  );
 
   app.get("/health", (req, res) => {
     res.status(200).send("OK");
