@@ -9,6 +9,9 @@ import { env } from "./utils/envalid.js";
 
 const initializeServer = async () => {
   const app = express();
+  app.get("/health", (req, res) => {
+    res.status(200).send("OK");
+  });
   const server = createServer(app);
 
   console.log("🚀 Starting server...");
@@ -25,9 +28,6 @@ const initializeServer = async () => {
     handleSocketConnection(socket, io, redisClient)
   );
 
-  app.get("/health", (req, res) => {
-    res.status(200).send("OK");
-  });
   app.use("/api", apiRoutes);
 
   // Start server
