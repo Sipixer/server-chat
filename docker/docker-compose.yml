@@ -3,13 +3,10 @@ version: "3.8"
 services:
   traefik:
     image: traefik:v3.1
-    container_name: traefik
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
-    networks:
-      - proxy
     dns:
       - 1.1.1.1
       - 8.8.8.8
@@ -19,71 +16,41 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./letsencrypt:/letsencrypt
     command:
+      # Entrypoints
       - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
       - --entrypoints.websecure.address=:443
+
+      # Providers
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
+
+      # Let's Encrypt (DuckDNS)
       - --certificatesresolvers.duckdns.acme.email=${ACME_EMAIL}
       - --certificatesresolvers.duckdns.acme.storage=/letsencrypt/acme.json
       - --certificatesresolvers.duckdns.acme.dnschallenge.provider=duckdns
       - --certificatesresolvers.duckdns.acme.dnschallenge.delaybeforecheck=90
       - --certificatesresolvers.duckdns.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53
+
+      # Dashboard & logs
+      - --api.dashboard=true
       - --log.level=DEBUG
 
   chat-server:
-    build:
-      context: ../server
-      dockerfile: Dockerfile
     image: ghcr.io/sipixer/server-chat/chat-server:latest
     restart: unless-stopped
     depends_on:
       - redis
     environment:
       ELASTICACHE_ENDPOINT: "${REDIS_HOST}:${REDIS_PORT}"
-    networks:
-      - proxy
-      - backend
-    deploy:
-      replicas: ${STD_SERVER_REPLICAS}
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.chat-server.rule=Host(`${DOMAIN}`)"
-      - "traefik.http.routers.chat-server.entrypoints=websecure"
-      - "traefik.http.routers.chat-server.tls.certresolver=duckdns"
-      - "traefik.http.services.chat-server.loadbalancer.server.port=3000"
-      - "traefik.http.services.chat-server.loadbalancer.sticky.cookie=true"
-      - "traefik.http.services.chat-server.loadbalancer.sticky.cookie.name=chat-session"
-      - "com.centurylinklabs.watchtower.enable=true"
+      - traefik.enable=true
+      - traefik.http.routers.chat-server.rule=Host(`${DOMAIN}`)
+      - traefik.http.routers.chat-server.entrypoints=websecure
+      - traefik.http.routers.chat-server.tls.certresolver=duckdns
+      - traefik.http.services.chat-server.loadbalancer.server.port=3000
 
   redis:
     image: redis:8.2.2-alpine
-    container_name: redis
     restart: unless-stopped
-    networks:
-      - backend
-
-  watchtower:
-    image: containrrr/watchtower
-    container_name: watchtower
-    restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    command:
-      - --rolling-restart
-      - --cleanup
-      - --label-enable
-      - --revive-stopped
-      # pas de --interval -> par défaut : toutes les 5 min (300s)
-    networks:
-      - proxy
-      - backend
-
-networks:
-  proxy:
-    driver: bridge
-    name: proxy
-
-  backend:
-    driver: bridge
-    name: backend
-    internal: false
