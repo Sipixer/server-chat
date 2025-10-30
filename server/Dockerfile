@@ -1,5 +1,5 @@
 # Étape 1 : Base commune (légère et sécurisée)
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 WORKDIR /usr/src/app
 
 # Installer pnpm de manière globale
@@ -21,7 +21,7 @@ COPY . .
 RUN pnpm run build
 
 # Étape 4 : Image finale (production, ultra légère)
-FROM node:20-alpine AS production
+FROM node:22-alpine AS production
 WORKDIR /usr/src/app
 
 ENV NODE_ENV=production
