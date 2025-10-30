@@ -54,3 +54,8 @@ services:
   redis:
     image: redis:8.2.2-alpine
     restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:
