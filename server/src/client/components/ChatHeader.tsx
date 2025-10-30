@@ -1,5 +1,6 @@
-import { User } from "lucide-react";
+import { User, BookOpen } from "lucide-react";
 import type React from "react";
+import { Link } from "react-router-dom";
 
 interface ChatHeaderProps {
 	username: string;
@@ -20,9 +21,19 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 					ID du serveur: {serverId}
 				</div>
 			)}
-			<div className="flex items-center space-x-3 bg-gray-50 px-4 py-2 rounded-xl">
-				<User className="w-5 h-5 text-blue-500" />
-				<span className="text-gray-700 font-medium">{username}</span>
+			<div className="flex items-center gap-3">
+				<Link
+					to="/letsencrypt-guide"
+					className="flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors font-medium shadow-md hover:shadow-lg"
+					title="Guide Let's Encrypt"
+				>
+					<BookOpen className="w-5 h-5" />
+					<span className="hidden sm:inline">Guide SSL</span>
+				</Link>
+				<div className="flex items-center space-x-3 bg-gray-50 px-4 py-2 rounded-xl">
+					<User className="w-5 h-5 text-blue-500" />
+					<span className="text-gray-700 font-medium">{username}</span>
+				</div>
 			</div>
 		</div>
 	</header>
