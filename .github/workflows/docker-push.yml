@@ -47,3 +47,11 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Trigger K8s deployment update
+        run: |
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.K8S_REPO_TOKEN }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/Sipixer/ynov-k8s-orchestration/dispatches \
+            -d "{\"event_type\":\"update-chat-app-image\",\"client_payload\":{\"tag\":\"${{ github.sha }}\"}}"
