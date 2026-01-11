@@ -53,7 +53,7 @@ jobs:
 
       - name: Extract SHA tag
         id: sha-tag
-        run: echo "tag=${{ github.ref_name }}-${{ github.sha }}" >> $GITHUB_OUTPUT
+        run: echo "tag=${{ github.ref_name }}-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
 
       - name: Trigger K8s deployment update
         run: |
